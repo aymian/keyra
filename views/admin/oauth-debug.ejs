@@ -1,0 +1,233 @@
+<%- include('../partials/header') %>
+    <div class="w-full max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">OAuth Debug Console</h1>
+                    <p class="text-slate-600">Monitor authorization codes, tokens, and client data in real-time</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-slate-500">Logged in as</p>
+                    <p class="font-semibold text-slate-900">
+                        <%= user.email %>
+                    </p>
+                    <p class="text-xs text-slate-400 mt-1">
+                        <%= currentTime %>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+            <div class="border-b border-slate-200">
+                <nav class="flex -mb-px">
+                    <button onclick="switchTab('clients')" id="tab-clients"
+                        class="tab-button active px-6 py-4 text-sm font-semibold border-b-2 border-teal-600 text-teal-700">
+                        OAuth Clients (<%= clients.length %>)
+                    </button>
+                    <button onclick="switchTab('codes')" id="tab-codes"
+                        class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300">
+                        Authorization Codes (<%= authCodes.length %>)
+                    </button>
+                    <button onclick="switchTab('json')" id="tab-json"
+                        class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300">
+                        JSON View
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Clients Tab -->
+                <div id="content-clients" class="tab-content">
+                    <h2 class="text-xl font-bold text-slate-900 mb-4">Registered OAuth Clients</h2>
+                    <% if (clients.length===0) { %>
+                        <div class="text-center py-12 text-slate-500">
+                            <p>No OAuth clients registered yet.</p>
+                            <a href="/developers" class="text-teal-600 hover:underline mt-2 inline-block">Create your
+                                first client</a>
+                        </div>
+                        <% } else { %>
+                            <div class="space-y-4">
+                                <% clients.forEach(client=> { %>
+                                    <div
+                                        class="border border-slate-200 rounded-lg p-4 hover:border-teal-300 transition-colors">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div>
+                                                <h3 class="font-bold text-lg text-slate-900">
+                                                    <%= client.name %>
+                                                </h3>
+                                                <p class="text-sm text-slate-500">
+                                                    <%= client.website || 'No website' %>
+                                                </p>
+                                            </div>
+                                            <span
+                                                class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Active</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p class="text-slate-500 mb-1">Client ID</p>
+                                                <code
+                                                    class="bg-slate-100 px-2 py-1 rounded text-xs font-mono"><%= client.client_id %></code>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-500 mb-1">Client Secret</p>
+                                                <code
+                                                    class="bg-slate-100 px-2 py-1 rounded text-xs font-mono"><%= client.client_secret.substring(0, 20) %>...</code>
+                                            </div>
+                                            <div class="col-span-2">
+                                                <p class="text-slate-500 mb-1">Redirect URI</p>
+                                                <code
+                                                    class="bg-slate-100 px-2 py-1 rounded text-xs font-mono break-all"><%= client.redirect_uri %></code>
+                                            </div>
+                                            <div class="col-span-2">
+                                                <p class="text-slate-500 mb-1">Created</p>
+                                                <p class="text-slate-700">
+                                                    <%= new Date(client.created_at).toLocaleString() %>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } %>
+                </div>
+
+                <!-- Authorization Codes Tab -->
+                <div id="content-codes" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-slate-900">Active Authorization Codes</h2>
+                        <button onclick="refreshData()"
+                            class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-500 text-sm font-semibold">
+                            Refresh
+                        </button>
+                    </div>
+                    <% if (authCodes.length===0) { %>
+                        <div class="text-center py-12 text-slate-500">
+                            <p>No active authorization codes.</p>
+                            <p class="text-sm mt-2">Codes appear here when users authorize your OAuth apps.</p>
+                        </div>
+                        <% } else { %>
+                            <div class="space-y-4">
+                                <% authCodes.forEach(codeData=> { %>
+                                    <div
+                                        class="border border-slate-200 rounded-lg p-4 <%= codeData.used ? 'bg-slate-50' : 'bg-white' %>">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <h3 class="font-bold text-slate-900">Authorization Code</h3>
+                                                    <% if (codeData.used) { %>
+                                                        <span
+                                                            class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">Used</span>
+                                                        <% } else if (codeData.expires_in_seconds <=0) { %>
+                                                            <span
+                                                                class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded">Expired</span>
+                                                            <% } else { %>
+                                                                <span
+                                                                    class="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">Valid</span>
+                                                                <% } %>
+                                                </div>
+                                                <code
+                                                    class="bg-slate-100 px-2 py-1 rounded text-xs font-mono break-all"><%= codeData.code %></code>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p class="text-slate-500 mb-1">User ID</p>
+                                                <code
+                                                    class="text-xs font-mono text-slate-700"><%= codeData.user_id %></code>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-500 mb-1">Client ID</p>
+                                                <code
+                                                    class="text-xs font-mono text-slate-700"><%= codeData.client_id %></code>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-500 mb-1">Scope</p>
+                                                <p class="text-slate-700">
+                                                    <%= codeData.scope %>
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-500 mb-1">Expires In</p>
+                                                <p class="text-slate-700 font-semibold">
+                                                    <%= codeData.expires_in_seconds %>s
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } %>
+                </div>
+
+                <!-- JSON View Tab -->
+                <div id="content-json" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-slate-900">Raw JSON Data</h2>
+                        <button onclick="copyJSON()"
+                            class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-500 text-sm font-semibold">
+                            Copy JSON
+                        </button>
+                    </div>
+                    <div class="bg-slate-900 rounded-lg p-4 overflow-auto max-h-[600px]">
+                        <pre id="json-output" class="text-sm text-green-400 font-mono"><%= JSON.stringify({
+                            timestamp: currentTime,
+                            user: { id: user.id, email: user.email },
+                            clients: clients,
+                            authorization_codes: authCodes
+                        }, null, 2) %></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-6 text-center">
+            <a href="/developers"
+                class="inline-block px-6 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-500 font-semibold">
+                ← Back to Developers Portal
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(el => {
+                el.classList.remove('active', 'border-teal-600', 'text-teal-700');
+                el.classList.add('border-transparent', 'text-slate-600');
+            });
+
+            // Show selected content
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+
+            // Add active class to selected button
+            const activeButton = document.getElementById('tab-' + tabName);
+            activeButton.classList.add('active', 'border-teal-600', 'text-teal-700');
+            activeButton.classList.remove('border-transparent', 'text-slate-600');
+        }
+
+        function refreshData() {
+            window.location.reload();
+        }
+
+        function copyJSON() {
+            const jsonText = document.getElementById('json-output').textContent;
+            navigator.clipboard.writeText(jsonText).then(() => {
+                alert('JSON copied to clipboard!');
+            });
+        }
+    </script>
+
+    <style>
+        .tab-button {
+            transition: all 0.2s;
+        }
+    </style>
+    <%- include('../partials/footer') %>

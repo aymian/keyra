@@ -43,6 +43,7 @@ app.use(session({
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/oauth', require('./routes/oauth'));
+app.use('/admin', require('./routes/admin'));
 
 // Error Handler
 app.use((err, req, res, next) => {
