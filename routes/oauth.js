@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('../supa');
+const { supabase, supabaseAdmin } = require('../supa');
 
 // Middleware to ensure user is logged in
 const ensureLoggedIn = (req, res, next) => {
@@ -30,7 +30,7 @@ router.get('/authorize', ensureLoggedIn, async (req, res) => {
 
     // 1. Validate Client ID & Redirect URI
     // Query our 'clients' table
-    const { data: client, error } = await supabase
+    const { data: client, error } = await supabaseAdmin
         .from('clients')
         .select('*')
         .eq('client_id', client_id)
