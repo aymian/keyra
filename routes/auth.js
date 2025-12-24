@@ -14,7 +14,7 @@ router.get('/login', (req, res) => {
 // POST /auth/login
 router.post('/login', async (req, res) => {
     const { username, password, returnTo } = req.body;
-    const email = `${username}@keyra.com`;
+    const email = `${username}@keyra-production-a826.up.railway.app`;
 
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -52,7 +52,7 @@ router.get('/signup', (req, res) => {
 // POST /auth/signup
 router.post('/signup', async (req, res) => {
     const { username, password, confirmPassword, returnTo } = req.body;
-    const email = `${username}@keyra.com`;
+    const email = `${username}@keyra-production-a826.up.railway.app`;
 
     if (password !== confirmPassword) {
         return res.render('signup', { error: 'Passwords do not match', returnTo });
