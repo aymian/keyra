@@ -17,7 +17,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-6 border-b border-slate-100 flex items-center justify-between">
                         <h2 class="text-lg font-bold text-slate-900">Your Applications</h2>
-                        <button onclick="document.getElementById('createAppModal').classList.remove('hidden')"
+                        <button id="openCreateModal"
                             class="bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
                             + Create New App
                         </button>
@@ -120,7 +120,7 @@
                                 </div>
                                 <p class="text-lg font-medium text-slate-900 mb-1">No applications yet</p>
                                 <p class="mb-6">Create your first OAuth app to get started.</p>
-                                <button onclick="document.getElementById('createAppModal').classList.remove('hidden')"
+                                <button id="openCreateModal"
                                     class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-colors">
                                     Create Application
                                 </button>
@@ -176,8 +176,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
             <div class="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="text-xl font-bold text-slate-900">Create New Application</h3>
-                <button onclick="document.getElementById('createAppModal').classList.add('hidden')"
-                    class="text-slate-400 hover:text-slate-600">
+                <button id="closeCreateModal" class="text-slate-400 hover:text-slate-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
@@ -209,7 +208,7 @@
                 </div>
 
                 <div class="pt-4 flex items-center gap-3">
-                    <button type="button" onclick="document.getElementById('createAppModal').classList.add('hidden')"
+                    <button type="button" id="cancelCreateModal"
                         class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
                         Cancel
                     </button>
@@ -221,4 +220,31 @@
             </form>
         </div>
     </div>
+
+    <script nonce="keyra-script">
+        document.addEventListener('DOMContentLoaded', () => {
+            const openParams = document.getElementById('openCreateModal');
+            const closeParams = document.getElementById('closeCreateModal');
+            const cancelParams = document.getElementById('cancelCreateModal');
+            const modal = document.getElementById('createAppModal');
+
+            if (openParams) {
+                openParams.addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                });
+            }
+
+            if (closeParams) {
+                closeParams.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                });
+            }
+
+            if (cancelParams) {
+                cancelParams.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                });
+            }
+        });
+    </script>
     <%- include('partials/footer') %>
