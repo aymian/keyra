@@ -78,74 +78,64 @@ router.get('/authorize', ensureLoggedIn, async (req, res) => {
  * Handles the user's consent decision (Allow/Deny).
  */
 router.post('/decision', ensureLoggedIn, (req, res) => {
-    const { decision, transaction_id } = req.body;
-    const storedTransaction = req.session.oauth_transaction;
+    console.log('[OAuth:Decision] Received decision POST', req.body);
+    try {
+        const { decision, transaction_id } = req.body;
+        const storedTransaction = req.session.oauth_transaction;
 
-    // Security check
-    if (!storedTransaction || storedTransaction.transaction_id !== transaction_id) {
-        return res.status(400).render('error', { error: 'Invalid transaction. Please try again.' });
-    }
+        console.log('[OAuth:Decision] Verifying transaction:', {
+            received: transaction_id,
+            stored: storedTransaction ? storedTransaction.transaction_id : 'null'
+        });
 
-    // Clear transaction
-    delete req.session.oauth_transaction;
+        // Security check
+        if (!storedTransaction || storedTransaction.transaction_id !== transaction_id) {
+            console.error('[OAuth:Decision] Invalid transaction or session expired');
+            return res.status(400).render('error', { error: 'Invalid transaction. Please try again.' });
+        }
 
-    const { redirect_uri, state } = storedTransaction;
+        // Clear transaction
+        delete req.session.oauth_transaction;
 
-    if (decision === 'deny') {
-        const url = new URL(redirect_uri);
-        url.searchParams.append('error', 'access_denied');
-        if (state) url.searchParams.append('state', state);
-        return res.redirect(url.toString());
-    }
+        const { redirect_uri, state } = storedTransaction;
+        console.log('[OAuth:Decision] Redirect URI:', redirect_uri);
 
-    if (decision === 'allow') {
-        // APPROVE
-        // In a strictly "Custom UI" wrapping Supabase, we would now redirect the user 
-        // to the Supabase Authorize endpoint to generate the actual code/token.
-        // OR if Keyra is the provider, Keyra generates a code.
+        let url;
+        try {
+            url = new URL(redirect_uri);
+        } catch (e) {
+            console.error('[OAuth:Decision] Invalid Redirect URI stored:', redirect_uri);
+            return res.status(500).render('error', { error: 'Invalid configuration: bad redirect_uri' });
+        }
 
-        // Given the instructions "use Supabase auth server endpoints to redirect back with code",
-        // we can try to facilitate a redirect to Supabase that will bounce back to the Client.
+        if (decision === 'deny') {
+            console.log('[OAuth:Decision] User denied access');
+            url.searchParams.append('error', 'access_denied');
+            if (state) url.searchParams.append('state', state);
+            return res.redirect(url.toString());
+        }
 
-        // Strategy: Redirect to Supabase Authorize URL.
-        // Supabase will see the user is logged in (if we can pass the session? NO).
-        // If Supabase and Keyra are separate domains (localhost vs supabase.co), cookies don't share.
+        if (decision === 'allow') {
+            console.log('[OAuth:Decision] User allowed access');
 
-        // Alternative Interpretation:
-        // Keyra IS the provider. 
-        // We generate a "Dummy Code" or "Self-Signed Code" that the client exchanges?
-        // But the client calls `yourproject.supabase.co/auth/v1/token`.
+            // Generate a placeholder code
+            const code = 'spl_code_' + Math.random().toString(36).substring(2) + '_' + Date.now();
+            console.log('[OAuth:Decision] Generated code:', code);
 
-        // REALISTIC APPROACH:
-        // We construct a URL to redirect user to keys.
-        // Actually, if we look at Supabase "Authorizing with a third-party" logic.
+            url.searchParams.append('code', code);
+            if (state) url.searchParams.append('state', state);
 
-        // Let's implement the "Success" redirect as if we had a code.
-        // Since we cannot mint a Supabase Code without being Supabase.
-        // AND the user wants the "Token endpoint" to be Supabase.
-        // This implies the standard Supabase OAuth2 flow where Supabase handles everything.
-        // BUT we are intervening.
+            const finalUrl = url.toString();
+            console.log('[OAuth:Decision] Redirecting to:', finalUrl);
+            return res.redirect(finalUrl);
+        }
 
-        // Let's assume for this "Keyra" demo, we just return a mock code to demonstrate the UI flow,
-        // or redirect to the Redirect URI.
-        // Because we physically cannot satisfy "Supabase issues token" AND "Keyra shows consent" 
-        // without Keyra being the registered "Auth Server" in Supabase settings (which redirects TO Keyra).
+        // Fallback
+        res.status(400).send('Invalid decision');
 
-        // If Supabase redirects TO Keyra (`/authorize`), it passes `code_challenge` etc.
-        // If we are just the UI, we should verify, then redirect BACK to Supabase?
-        // There is no documented "resume" endpoint for Supabase Auth Custom UI.
-
-        // BEST EFFORT:
-        // Redirect to redirect_uri with a placeholder code.
-        // Warn in console/logs that this code won't actually work against Supabase unless configured perfectly.
-
-        const code = 'spl_code_' + Math.random().toString(36).substring(2) + '_' + Date.now();
-
-        const url = new URL(redirect_uri);
-        url.searchParams.append('code', code);
-        if (state) url.searchParams.append('state', state);
-
-        return res.redirect(url.toString());
+    } catch (err) {
+        console.error('[OAuth:Decision] Unexpected error:', err);
+        return res.status(500).render('error', { error: 'An unexpected error occurred during authorization.' });
     }
 });
 
