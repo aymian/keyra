@@ -194,35 +194,59 @@
     </div>
 
     <script>
-        function switchTab(tabName) {
-            // Hide all content
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('OAuth Debug page loaded');
 
-            // Remove active class from all buttons
-            document.querySelectorAll('.tab-button').forEach(el => {
-                el.classList.remove('active', 'border-teal-600', 'text-teal-700');
-                el.classList.add('border-transparent', 'text-slate-600');
-            });
+            // Make functions global so onclick handlers can access them
+            window.switchTab = function (tabName) {
+                console.log('Switching to tab:', tabName);
 
-            // Show selected content
-            document.getElementById('content-' + tabName).classList.remove('hidden');
+                // Hide all content
+                document.querySelectorAll('.tab-content').forEach(el => {
+                    el.classList.add('hidden');
+                });
 
-            // Add active class to selected button
-            const activeButton = document.getElementById('tab-' + tabName);
-            activeButton.classList.add('active', 'border-teal-600', 'text-teal-700');
-            activeButton.classList.remove('border-transparent', 'text-slate-600');
-        }
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(el => {
+                    el.classList.remove('active', 'border-teal-600', 'text-teal-700');
+                    el.classList.add('border-transparent', 'text-slate-600');
+                });
 
-        function refreshData() {
-            window.location.reload();
-        }
+                // Show selected content
+                const contentEl = document.getElementById('content-' + tabName);
+                if (contentEl) {
+                    contentEl.classList.remove('hidden');
+                    console.log('Showing content:', 'content-' + tabName);
+                } else {
+                    console.error('Content element not found:', 'content-' + tabName);
+                }
 
-        function copyJSON() {
-            const jsonText = document.getElementById('json-output').textContent;
-            navigator.clipboard.writeText(jsonText).then(() => {
-                alert('JSON copied to clipboard!');
-            });
-        }
+                // Add active class to selected button
+                const activeButton = document.getElementById('tab-' + tabName);
+                if (activeButton) {
+                    activeButton.classList.add('active', 'border-teal-600', 'text-teal-700');
+                    activeButton.classList.remove('border-transparent', 'text-slate-600');
+                } else {
+                    console.error('Tab button not found:', 'tab-' + tabName);
+                }
+            };
+
+            window.refreshData = function () {
+                window.location.reload();
+            };
+
+            window.copyJSON = function () {
+                const jsonText = document.getElementById('json-output').textContent;
+                navigator.clipboard.writeText(jsonText).then(() => {
+                    alert('JSON copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy JSON. Please copy manually.');
+                });
+            };
+
+            console.log('Tab switching functions initialized');
+        });
     </script>
 
     <style>
