@@ -54,6 +54,7 @@ router.get('/authorize', ensureLoggedIn, async (req, res) => {
     req.session.oauth_transaction = {
         transaction_id,
         client_id,
+        client_name: client.name,
         redirect_uri,
         response_type,
         scope,
@@ -112,7 +113,10 @@ router.post('/decision', ensureLoggedIn, (req, res) => {
             console.log('[OAuth:Decision] User denied access');
             url.searchParams.append('error', 'access_denied');
             if (state) url.searchParams.append('state', state);
-            return res.redirect(url.toString());
+            return res.render('redirect', {
+                url: url.toString(),
+                client_name: storedTransaction.client_name || 'the application'
+            });
         }
 
         if (decision === 'allow') {
@@ -127,7 +131,10 @@ router.post('/decision', ensureLoggedIn, (req, res) => {
 
             const finalUrl = url.toString();
             console.log('[OAuth:Decision] Redirecting to:', finalUrl);
-            return res.redirect(finalUrl);
+            return res.render('redirect', {
+                url: finalUrl,
+                client_name: storedTransaction.client_name || 'your application'
+            });
         }
 
         // Fallback

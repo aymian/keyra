@@ -1,0 +1,37 @@
+<%- include('partials/header') %>
+    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        <div class="p-8 text-center">
+            <div class="flex items-center justify-center mb-6">
+                <svg class="animate-spin h-12 w-12 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+            </div>
+
+            <h2 class="text-2xl font-bold text-slate-900 mb-2">Redirecting...</h2>
+            <p class="text-slate-600 mb-6">
+                Taking you back to <span class="font-medium text-teal-700">
+                    <%= client_name || 'your application' %>
+                </span>
+            </p>
+
+            <div class="bg-slate-50 rounded-lg p-4 border border-slate-100">
+                <p class="text-sm text-slate-600 mb-3">If you are not redirected automatically:</p>
+                <a href="<%= url %>"
+                    class="inline-block bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-teal-500 transition-colors">
+                    Click here to continue
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Attempt automatic redirect
+        setTimeout(function () {
+            window.location.replace('<%= url %>');
+        }, 500);
+    </script>
+    <%- include('partials/footer') %>
