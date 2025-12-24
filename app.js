@@ -39,11 +39,17 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
+// Passport Config
+const passport = require('./config/passport');
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Routes (Placeholder)
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/oauth', require('./routes/oauth'));
 app.use('/admin', require('./routes/admin'));
+app.use('/', require('./routes/webauthn'));
 
 // Error Handler
 app.use((err, req, res, next) => {

@@ -53,6 +53,25 @@
                                     Sign in
                                 </button>
                     </form>
+
+                    <div class="relative my-6">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-slate-200"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-slate-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="startPasskeyLogin()"
+                        class="w-full flex justify-center items-center gap-2 bg-white text-slate-700 font-semibold py-3 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors focus:ring-4 focus:ring-slate-100">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Sign in with Passkey
+                    </button>
+                    <p id="passkey-error" class="text-sm text-red-500 mt-2 text-center hidden"></p>
         </div>
         <div class="px-8 py-4 bg-slate-50 border-t border-slate-100 text-center">
             <p class="text-sm text-slate-600">
@@ -62,4 +81,48 @@
             </p>
         </div>
     </div>
+
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+    <script>
+        const { startAuthentication } = SimpleWebAuthnBrowser;
+
+        async function startPasskeyLogin() {
+            const errorEl = document.getElementById('passkey-error');
+            errorEl.classList.add('hidden');
+            errorEl.textContent = '';
+
+            try {
+                // 1. Get challenge from server
+                const resp = await fetch('/login/public-key/challenge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!resp.ok) throw new Error('Failed to get challenge');
+                const options = await resp.json();
+
+                // 2. Ask browser for credential
+                const authResp = await startAuthentication(options.challenge);
+
+                // 3. Send to server for verification
+                const verifyResp = await fetch('/login/public-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(authResp)
+                });
+
+                const verificationJSON = await verifyResp.json();
+
+                if (verificationJSON.success) {
+                    window.location.href = verificationJSON.redirect || '/developers';
+                } else {
+                    throw new Error(verificationJSON.error || 'Authentication failed');
+                }
+            } catch (err) {
+                console.error(err);
+                errorEl.textContent = err.message || 'Failed to authenticate with Passkey';
+                errorEl.classList.remove('hidden');
+            }
+        }
+    </script>
     <%- include('partials/footer') %>
