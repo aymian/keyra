@@ -74,7 +74,7 @@
                 </ul>
             </div>
 
-            <form action="/oauth/decision" method="POST" class="flex flex-col gap-3">
+            <form id="consent-form" action="/oauth/decision" method="POST" class="flex flex-col gap-3">
                 <input type="hidden" name="transaction_id" value="<%= transaction_id %>">
                 <input type="hidden" name="client_id" value="<%= client_id %>">
                 <input type="hidden" name="scope" value="<%= scope %>">
@@ -82,14 +82,63 @@
                 <input type="hidden" name="state" value="<%= state %>">
 
                 <button type="submit" name="decision" value="allow"
-                    class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-500 transition-colors shadow-lg hover:shadow-teal-500/20 text-lg">
-                    Continue
+                    class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-500 transition-colors shadow-lg hover:shadow-teal-500/20 text-lg flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span>Continue</span>
+                    <svg class="animate-spin h-5 w-5 text-white hidden" id="spinner" xmlns="http://www.w3.org/2000/svg"
+                        fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
                 </button>
                 <button type="submit" name="decision" value="deny"
-                    class="w-full bg-white text-slate-700 font-semibold py-3 px-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                    class="w-full bg-white text-slate-700 font-semibold py-3 px-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     Cancel
                 </button>
             </form>
+
+            <script>
+                document.getElementById('consent-form').addEventListener('submit', function (e) {
+                    const btn = this.querySelector('button[value="allow"]');
+                    const cancelBtn = this.querySelector('button[value="deny"]');
+                    const spinner = document.getElementById('spinner');
+                    const span = btn.querySelector('span');
+
+                    // Prevent multiple submissions if already disabled (extra safety)
+                    if (btn.disabled) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    // We need to capture which button was clicked because 'submit' event doesn't carry the button's value automatically if we disable it immediately?
+                    // Actually, if we just let the form submit, it will send. But we want to disable nicely.
+                    // The trick: simple forms submit immediately. Disabling AFTER a short delay or just letting it fly is fine.
+                    // Better approach for UX: change text, show spinner.
+
+                    // We can't easily distinguish allow/deny in the submit handler without checking e.submitter
+                    // But for safety, let's just show processing state.
+
+                    if (e.submitter && e.submitter.value === 'allow') {
+                        span.textContent = 'Processing...';
+                        spinner.classList.remove('hidden');
+                    } else if (e.submitter && e.submitter.value === 'deny') {
+                        e.submitter.textContent = 'Cancelling...';
+                    }
+
+                    // Disable buttons to prevent double-click
+                    // Note: If we disable immediately, the form data for the button (decision=allow) might not send in some browsers if sending via submitter.
+                    // So we use a tiny timeout or rely on the form being submitted.
+                    // Actually, modern browsers handle this, but to be safe we can use readyState or just visually disable.
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    cancelBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    // We don't strictly set .disabled = true to avoid losing the 'decision' value in the POST payload
+                    // instead we use CSS to make it look disabled and pointer-events to stop clicks.
+                    btn.style.pointerEvents = 'none';
+                    cancelBtn.style.pointerEvents = 'none';
+                });
+            </script>
         </div>
         <div class="px-8 py-4 bg-slate-50 border-t border-slate-100 text-center">
             <p class="text-xs text-slate-500">
