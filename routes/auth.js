@@ -28,7 +28,12 @@ router.post('/login', async (req, res) => {
         if (data.session) {
             req.session.access_token = data.session.access_token;
             req.session.refresh_token = data.session.refresh_token;
-            req.session.user = data.user;
+            req.session.user = {
+                id: data.user.id,
+                email: data.user.email,
+                user_metadata: data.user.user_metadata,
+                app_metadata: data.user.app_metadata
+            };
         }
 
         if (returnTo) {
@@ -71,7 +76,12 @@ router.post('/signup', async (req, res) => {
         if (data.session) {
             req.session.access_token = data.session.access_token;
             req.session.refresh_token = data.session.refresh_token;
-            req.session.user = data.user;
+            req.session.user = {
+                id: data.user.id,
+                email: data.user.email,
+                user_metadata: data.user.user_metadata,
+                app_metadata: data.user.app_metadata
+            };
             if (returnTo) return res.redirect(returnTo);
             return res.redirect('/dashboard');
         }
