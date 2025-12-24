@@ -23,8 +23,62 @@ router.get('/', (req, res) => {
     res.render('index', { user: req.session.user || null });
 });
 
-router.get('/developers', (req, res) => {
-    res.render('developers', { user: req.session.user || null });
+// Developer Portal - List Apps
+router.get('/developers', async (req, res) => {
+    const user = req.session.user || null;
+    let clients = [];
+
+    if (user) {
+        // Fetch users apps
+        const { data, error } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            clients = data;
+        }
+    }
+
+    res.render('developers', { user, clients });
+});
+
+// Create New App
+router.post('/developers/create', requireAuth, async (req, res) => {
+    const { name, website, redirect_uri } = req.body;
+    const client_id = 'kp_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const client_secret = 'ksec_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    const { error } = await supabase
+        .from('clients')
+        .insert({
+            user_id: req.user.id,
+            name,
+            website,
+            redirect_uri,
+            client_id,
+            client_secret
+        });
+
+    if (error) {
+        console.error('Error creating app:', error);
+        // ideally flash error
+    }
+    res.redirect('/developers');
+});
+
+// Delete App
+router.post('/developers/delete', requireAuth, async (req, res) => {
+    const { id } = req.body;
+
+    await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', req.user.id);
+
+    res.redirect('/developers');
 });
 
 router.get('/dashboard', requireAuth, (req, res) => {

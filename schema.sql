@@ -9,8 +9,21 @@ create table if not exists public.profiles (
   primary key (id)
 );
 
+-- Create a table for OAuth Clients
+create table if not exists public.clients (
+    id uuid default gen_random_uuid() primary key,
+    user_id uuid references auth.users on delete cascade not null,
+    name text not null,
+    website text,
+    redirect_uri text not null, -- For simplicity, single URI. In prod, array.
+    client_id text unique not null,
+    client_secret text not null,
+    created_at timestamp with time zone default now()
+);
+
 -- Turn on Row Level Security (safe to run multiple times)
 alter table public.profiles enable row level security;
+alter table public.clients enable row level security;
 
 -- Policies: Drop first to ensure cleanliness on re-run
 drop policy if exists "Public profiles are viewable by everyone." on profiles;
@@ -27,6 +40,25 @@ drop policy if exists "Users can update own profile." on profiles;
 create policy "Users can update own profile."
   on profiles for update
   using ( auth.uid() = id );
+
+-- Clients Policies
+drop policy if exists "Users can view their own clients." on clients;
+create policy "Users can view their own clients."
+  on clients for select
+  using ( auth.uid() = user_id );
+
+drop policy if exists "Users can insert their own clients." on clients;
+create policy "Users can insert their own clients."
+  on clients for insert
+  with check ( auth.uid() = user_id );
+
+drop policy if exists "Users can delete their own clients." on clients;
+create policy "Users can delete their own clients."
+  on clients for delete
+  using ( auth.uid() = user_id );
+
+-- Public read access for OAuth validation (or use Service Role in backend)
+-- We'll use Service Role in backend to validate, so no public read needed.
 
 -- Function to handle new user signup
 create or replace function public.handle_new_user()

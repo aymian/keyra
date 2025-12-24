@@ -18,7 +18,7 @@ const ensureLoggedIn = (req, res, next) => {
  * Standard OAuth2 authorization endpoint.
  * Validates params, checks user session, displays consent.
  */
-router.get('/authorize', ensureLoggedIn, (req, res) => {
+router.get('/authorize', ensureLoggedIn, async (req, res) => {
     const {
         client_id,
         redirect_uri,
@@ -28,13 +28,24 @@ router.get('/authorize', ensureLoggedIn, (req, res) => {
         nonce
     } = req.query;
 
-    // Basic Validation
-    if (!client_id || !redirect_uri) {
-        return res.status(400).render('error', { error: 'Missing client_id or redirect_uri' });
+    // 1. Validate Client ID & Redirect URI
+    // Query our 'clients' table
+    const { data: client, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('client_id', client_id)
+        .single();
+
+    if (error || !client) {
+        return res.status(400).send('Invalid client_id');
     }
 
-    // In a real scenario, we would verify client_id against a database
-    // For this demo, we assume the Client ID is valid if provided
+    if (client.redirect_uri !== redirect_uri) {
+        return res.status(400).send('Mismatching redirect_uri');
+    }
+
+    // 2. Check if user is logged in
+    // Note: 'scope' is handled loosely here. In real OIDC, you'd validate/persist it.
 
     // Generate a transaction ID to track this consent flow securely
     const transaction_id = Math.random().toString(36).substring(7);
@@ -52,7 +63,7 @@ router.get('/authorize', ensureLoggedIn, (req, res) => {
 
     res.render('consent', {
         user: req.session.user,
-        client_name: 'Third Party App', // In real app, query by client_id
+        client_name: client.name,
         client_id,
         scope: scope || 'email profile',
         redirect_uri,

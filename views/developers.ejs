@@ -1,78 +1,224 @@
 <%- include('partials/header') %>
-    <div class="w-full max-w-4xl mx-auto">
-        <div class="mb-10 text-center">
-            <h1 class="text-3xl font-bold text-slate-900 mb-4">Developer Portal</h1>
-            <p class="text-slate-600 max-w-2xl mx-auto">
-                Register your applications to use Keyra for authentication.
-                <br>
-                <span class="text-orange-600 font-medium text-sm bg-orange-50 px-2 py-1 rounded">Note: Currently client
-                    management is done via Supabase Dashboard.</span>
-            </p>
+    <div class="max-w-6xl mx-auto w-full py-10 px-4">
+        <div
+            class="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden mb-8 text-white relative">
+            <div
+                class="absolute top-0 right-0 p-32 bg-teal-500 rounded-full blur-[100px] opacity-10 pointer-events-none">
+            </div>
+            <div class="p-10 relative">
+                <h1 class="text-3xl font-bold mb-2">Developer Portal</h1>
+                <p class="text-slate-400">Manage your OAuth applications and integration settings.</p>
+            </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-8">
-            <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
-                <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
-                        </path>
-                    </svg>
-                    Register New App
-                </h3>
-                <form class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Application Name</label>
-                        <input type="text" disabled placeholder="My Awesome App"
-                            class="w-full px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed">
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Left Column: App List -->
+            <div class="md:col-span-2 space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                        <h2 class="text-lg font-bold text-slate-900">Your Applications</h2>
+                        <button onclick="document.getElementById('createAppModal').classList.remove('hidden')"
+                            class="bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
+                            + Create New App
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Redirect URI</label>
-                        <input type="url" disabled placeholder="https://myapp.com/callback"
-                            class="w-full px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed">
-                    </div>
-                    <div class="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm leading-relaxed">
-                        To register a new OAuth client, please visit the <a href="https://supabase.com/dashboard"
-                            target="_blank" class="font-bold underline hover:text-blue-900">Supabase Dashboard</a>.
-                        Go to Authentication > Providers > Third-Party Providers (if enabled) or manage your own
-                        `clients` table if implementing custom client storage.
-                    </div>
-                </form>
-            </div>
 
-            <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
-                <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                    </svg>
-                    Integration Guide
-                </h3>
-                <div class="space-y-4 text-sm text-slate-600">
-                    <p>Use the following endpoints to integrate Keyra:</p>
+                    <% if (clients && clients.length> 0) { %>
+                        <div class="divide-y divide-slate-100">
+                            <% clients.forEach(client=> { %>
+                                <div class="p-6 hover:bg-slate-50 transition-colors group">
+                                    <div class="flex items-start justify-between mb-4">
+                                        <div>
+                                            <h3 class="font-bold text-slate-900 text-lg">
+                                                <%= client.name %>
+                                            </h3>
+                                            <% if(client.website) { %>
+                                                <a href="<%= client.website %>" target="_blank"
+                                                    class="text-sm text-teal-600 hover:underline flex items-center gap-1">
+                                                    <%= client.website %>
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                                                            </path>
+                                                        </svg>
+                                                </a>
+                                                <% } %>
+                                        </div>
+                                        <form action="/developers/delete" method="POST"
+                                            onsubmit="return confirm('Are you sure? This cannot be undone.');">
+                                            <input type="hidden" name="id" value="<%= client.id %>">
+                                            <button type="submit"
+                                                class="text-red-400 hover:text-red-600 p-2 rounded hover:bg-red-50 transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
 
-                    <div class="bg-slate-900 rounded-lg p-4 overflow-x-auto">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-green-500 text-slate-900">GET</span>
-                            <span class="text-slate-300 font-mono">/oauth/authorize</span>
+                                    <div class="bg-slate-900 rounded-lg p-4 space-y-3">
+                                        <div>
+                                            <label
+                                                class="text-xs text-slate-500 uppercase font-semibold tracking-wider">Client
+                                                ID</label>
+                                            <div class="flex items-center gap-2">
+                                                <code
+                                                    class="text-teal-400 font-mono text-sm break-all"><%= client.client_id %></code>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="text-xs text-slate-500 uppercase font-semibold tracking-wider">Client
+                                                Secret</label>
+                                            <div class="group/secret relative">
+                                                <code
+                                                    class="text-slate-400 font-mono text-sm blur-sm hover:blur-none transition-all duration-300 break-all cursor-pointer"><%= client.client_secret %></code>
+                                                <span
+                                                    class="text-[10px] text-slate-600 absolute right-0 top-0 pointer-events-none group-hover/secret:hidden">Hover
+                                                    to reveal</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="text-xs text-slate-500 uppercase font-semibold tracking-wider">Redirect
+                                                URI</label>
+                                            <div class="text-slate-300 font-mono text-sm break-all">
+                                                <%= client.redirect_uri %>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                        <div class="text-xs text-slate-400">
+                                            Created <%= new Date(client.created_at).toLocaleDateString() %>
+                                        </div>
+                                        <a href="/oauth/authorize?client_id=<%= client.client_id %>&redirect_uri=<%= encodeURIComponent(client.redirect_uri) %>&response_type=code"
+                                            target="_blank"
+                                            class="text-sm font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1">
+                                            Test Integration &rarr;
+                                        </a>
+                                    </div>
+                                </div>
+                                <% }) %>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-blue-500 text-slate-900">POST</span>
-                            <span class="text-slate-300 font-mono">/oauth/token</span>
-                        </div>
-                    </div>
-
-                    <p>Example authorization request:</p>
-                    <pre
-                        class="bg-slate-100 p-3 rounded text-xs overflow-x-auto text-slate-800 border border-slate-200">
-https://keyra-production-a826.up.railway.app/oauth/authorize?
-  client_id=YOUR_CLIENT_ID
-  &redirect_uri=https://app.com/cb
-  &response_type=code
-  &scope=email profile</pre>
+                        <% } else { %>
+                            <div class="p-12 text-center text-slate-500">
+                                <div
+                                    class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <p class="text-lg font-medium text-slate-900 mb-1">No applications yet</p>
+                                <p class="mb-6">Create your first OAuth app to get started.</p>
+                                <button onclick="document.getElementById('createAppModal').classList.remove('hidden')"
+                                    class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-colors">
+                                    Create Application
+                                </button>
+                            </div>
+                            <% } %>
                 </div>
             </div>
+
+            <!-- Right Column: Docs -->
+            <div class="space-y-6">
+                <!-- Endpoints -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">Discovery</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <span
+                                class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Authorization
+                                Endpoint</span>
+                            <div class="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
+                                <span
+                                    class="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">GET</span>
+                                <code class="text-xs text-slate-600">/oauth/authorize</code>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Token
+                                Endpoint</span>
+                            <div class="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
+                                <span
+                                    class="text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">POST</span>
+                                <code class="text-xs text-slate-600">supa.auth.users</code>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1 italic">Handled by Supabase Auth</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">User Info
+                                Endpoint</span>
+                            <div class="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
+                                <span
+                                    class="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">GET</span>
+                                <code class="text-xs text-slate-600">/api/me</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create App Modal -->
+    <div id="createAppModal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-slate-900">Create New Application</h3>
+                <button onclick="document.getElementById('createAppModal').classList.add('hidden')"
+                    class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <form action="/developers/create" method="POST" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Application Name</label>
+                    <input type="text" name="name" required
+                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none"
+                        placeholder="My Awesome App">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Website URL</label>
+                    <input type="url" name="website"
+                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none"
+                        placeholder="https://myapp.com">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Redirect URI</label>
+                    <input type="url" name="redirect_uri" required
+                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none"
+                        placeholder="https://myapp.com/callback">
+                    <p class="text-xs text-slate-500 mt-1">Where we should return users after login.</p>
+                </div>
+
+                <div class="pt-4 flex items-center gap-3">
+                    <button type="button" onclick="document.getElementById('createAppModal').classList.add('hidden')"
+                        class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-500 transition-colors shadow-lg shadow-teal-500/30">
+                        Create App
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
     <%- include('partials/footer') %>
