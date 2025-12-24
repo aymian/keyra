@@ -2,13 +2,18 @@ const express = require('express');
 const router = express.Router();
 const passport = require('../config/passport');
 const { supabaseAdmin } = require('../supa');
-const base64url = require('base64url'); // You might need to install this or use buffer
-// Actually, simplewebauthn/browser sends base64url encoded strings usually.
-// Node.js Buffer can handle base64. 
+const base64url = require('base64url');
 
-// Helper to encode/decode
-// passport-fido2-webauthn expects ArrayBuffers or Buffers often for challenges
+// Server-side verification library (Required)
+let verifyRegistrationResponse;
+try {
+    const SimpleWebAuthnServer = require('@simplewebauthn/server');
+    verifyRegistrationResponse = SimpleWebAuthnServer.verifyRegistrationResponse;
+} catch (e) {
+    console.warn('@simplewebauthn/server not found. Registration verification will fail until installed.');
+}
 
+// REGISTER: Get Challenge
 router.post('/register/public-key/challenge', async (req, res) => {
     if (!req.session.access_token) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -29,106 +34,91 @@ router.post('/register/public-key/challenge', async (req, res) => {
     });
 });
 
+// REGISTER: Verify & Save
 router.post('/register/public-key', async (req, res) => {
     if (!req.session.access_token) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
-        const { id, rawId, response, type } = req.body;
-        // Verify attestation (creation)
-        // Note: passport-fido2-webauthn is mostly for authentication (assertion).
-        // Registration is usually manual with simplewebauthn/server or similar library validation.
-        // However, for simplicity/MVP or if assuming the library helps (it doesn't heavily help with registration verification internally in the strategy, usually that's for auth).
+        const { body } = req;
+        const user = req.session.user;
 
-        // Since user installed @simplewebauthn/browser, they probably want @simplewebauthn/server for verification.
-        // But requested to use "passport js to work".
-        // The passport strategy handles *authentication*.
-        // Registration needs to be handled separately to store the public key.
+        const expectedChallenge = req.session.challenge;
 
-        // Let's implement a basic registration handler. 
-        // For strict security, we should verify the attestation object.
-        // I will assume for this step we trust the client or use a simplified storage if simplewebauthn/server isn't available.
-        // BUT, the user said "pnpm add passport-fido2-webauthn @simplewebauthn/browser", they did NOT say @simplewebauthn/server.
-        // So I must implement registration manually or insecurely, OR ask to install simplewebauthn/server.
-        // "passport-fido2-webauthn" documentation says it supports registration? 
-        // Actually, many FIDO2 passport strategies are for authentication. Registration is out of band.
+        if (!verifyRegistrationResponse) {
+            return res.status(500).json({ error: 'Server missing @simplewebauthn/server dependency. Please install it.' });
+        }
 
-        // I will implement a placeholder registration that blindly trusts or does minimal checks if I can't verify signatures without the library.
-        // Storing the public key is key.
-        // The `response.attestationObject` contains the public key. Parsing it requires CBOR.
+        // Verify the attestation
+        const verification = await verifyRegistrationResponse({
+            response: body,
+            expectedChallenge,
+            expectedOrigin: [
+                'http://localhost:3000',
+                process.env.SITE_URL,
+                'https://keyra-production-a826.up.railway.app'
+            ],
+            expectedRPID: process.env.RP_ID || 'keyra-production-a826.up.railway.app', // Should match the domain
+            requireUserVerification: false,
+        });
 
-        // OK, I'll store the raw ID and assume we can parse it later or if the client sends the public key purely.
-        // @simplewebauthn/browser returns a big object.
+        const { verified, registrationInfo } = verification;
 
-        // IMPORTANT: Without @simplewebauthn/server, parsing the public key from the attestationObject is hard (CBOR decoding).
-        // I will assume the user MIGHT have installed it or I should suggest it.
-        // OR I can try to use `passport-fido2-webauthn` if it exposes helpers.
+        if (verified && registrationInfo) {
+            const { credentialPublicKey, credentialID, counter } = registrationInfo;
 
-        // Let's look at what `passport-fido2-webauthn` provides. It's a strategy.
-        // I'll assume for now I receive the public key or can just save the ID for lookup if I can't parse the key.
-        // BUT the strategy needs the public key to verify authentication signatures.
+            // Store in DB
+            const credentialIDBase64 = base64url.encode(credentialID);
+            const publicKeyBase64 = base64url.encode(credentialPublicKey);
 
-        // I will assume I need to install `cbor` and `base64url` to parse it myself if needed, OR I will just ask the user to install `@simplewebauthn/server` which is the standard companion.
-        // Using `@simplewebauthn/server` is the robust way.
+            const { error: dbError } = await supabaseAdmin
+                .from('authenticators')
+                .insert({
+                    credential_id: credentialIDBase64,
+                    user_id: user.id,
+                    public_key: publicKeyBase64,
+                    counter: counter,
+                    transports: body.response.transports ? body.response.transports.join(',') : null
+                });
 
-        // For now, I'll stub the registration to save what I can, but I highly recommend `@simplewebauthn/server`.
-        // I'll construct a simple "save" endpoint that expects the client to send the public key if possible, 
-        // but normally the client sends `attestationObject`.
+            if (dbError) throw dbError;
 
-        // Let's rely on what we have. I'll just save the credential ID and hopefully the public key if I can extract it.
-        // If not, I'll ask the user to add `@simplewebauthn/server`.
-
-        // Actually, to make "passport js work", we need the key.
-        // I'll assume usage of `@simplewebauthn/server` is implicitly needed or I'll add it to the implementation plan to ask.
-        // Wait, user said "start using passport js to work".
-
-        // I will implement the AUTHENTICATION part which uses Passport.
-        // Registration is a prerequisite.
-        // I'll add a simplified registration endpoint that assumes we can get the key.
-
-        // Simplified approach: just save the raw pieces and `passport-fido2-webauthn` might parse? No.
-        // I will require `@simplewebauthn/server` for the registration part.
-
-        // Let's add the routes.
-
-        const { id: credentialID, type: credentialType } = req.body;
-        // Verify response.attestationObject (CBOR) -> authData -> publicKey
-
-        // Placeholder: I'll accept the credentialID and a dummy key for now to allow the flow to "proceed" to the DB, 
-        // but note that without real verification/parsing, authentication will fail.
-
-        // Ideally I should install `@simplewebauthn/server`.
-        // I'll check if I can run `pnpm add @simplewebauthn/server`.
-
-        // For now, writing the file.
-        res.json({ status: 'ok' });
+            delete req.session.challenge;
+            return res.json({ verified: true });
+        } else {
+            return res.status(400).json({ verified: false, error: 'Verification failed' });
+        }
 
     } catch (e) {
+        console.error('Registration failed:', e);
         res.status(500).json({ error: e.message });
     }
 });
 
+// LOGIN: Get Challenge
 router.post('/login/public-key/challenge', (req, res) => {
     const challenge = require('crypto').randomBytes(32);
     req.session.challenge = base64url.encode(challenge);
     res.json({ challenge: req.session.challenge });
 });
 
+// LOGIN: Verify (Passport Strategy)
 router.post('/login/public-key',
     passport.authenticate('webauthn', {
         failureRedirect: '/auth/login?error=Invalid+Passkey'
     }),
     (req, res) => {
         // Successful authentication
-        // Set session
         req.session.user = {
             id: req.user.id,
             email: req.user.email,
             user_metadata: req.user.user_metadata
         };
-        // Issue token? Or just session.
-        // If this is part of OAuth flow, we usually just set session and redirect to /oauth/authorize?resume...
-        // For standard app login:
-        res.json({ success: true, redirect: '/developers' });
+
+        // Handle redirect
+        const redirect = req.session.returnTo || '/developers';
+        delete req.session.returnTo;
+
+        res.json({ success: true, redirect });
     }
 );
 

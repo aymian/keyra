@@ -6,7 +6,17 @@ passport.use(new WebAuthnStrategy({
     // Retrieve the user from the database by their ID
     // In a real app, you might look up by username/email first if using conditional UI or username-first flow
     // For this strategy, the 'username' (or userHandle) is often passed during the assertion phase
-    origin: process.env.SITE_URL || 'http://localhost:3000',
+    // Allow both localhost and production origins
+    origin: (origin) => {
+        const allowed = [
+            'http://localhost:3000',
+            process.env.SITE_URL, // e.g. https://keyra-production...
+            'https://keyra-production-a826.up.railway.app'
+        ];
+        // Allow if exact match or if environment variable matches
+        if (allowed.includes(origin)) return origin;
+        return allowed[0]; // Fallback? Or return undefined to fail.
+    },
     store: {
         // Callback to get a user's registered credentials
         // id: The credential ID (base64url encoded usually)
